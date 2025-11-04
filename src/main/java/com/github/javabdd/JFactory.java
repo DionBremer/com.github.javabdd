@@ -58,13 +58,28 @@ public class JFactory extends BDDFactoryIntImpl {
 
     static final boolean SWAPCOUNT = false;
 
-    private Writer outWriter;
-
-    private int linesWritten = 0;
-
     private Set<Long> computedNodes;
 
-    private Set<Long> removedNodes;
+    private long calcIdentifierRec(int bdd) {
+        if (ISZERO(bdd)) {
+            return HashUtils.hash(0);
+        }
+
+        if (ISONE(bdd)) {
+            return HashUtils.hash(1);
+        }
+
+        long low = calcIdentifierRec(LOW(bdd));
+        long high = calcIdentifierRec(HIGH(bdd));
+        long level = LEVEL(bdd);
+
+        return HashUtils.hash(level, low, high);
+    }
+
+    private int calcIntIdentifierRec(int bdd) {
+        long identifier = calcIdentifierRec(bdd);
+        return HashUtils.toInt(identifier);
+    }
 
     private long calcIdentifier(int bdd) {
         if (ISZERO(bdd)) {
@@ -75,11 +90,15 @@ public class JFactory extends BDDFactoryIntImpl {
             return HashUtils.hash(1);
         }
 
-        long low = calcIdentifier(LOW(bdd));
-        long high = calcIdentifier(HIGH(bdd));
-        long level = (long)LEVEL(bdd);
+        long level = LEVEL(bdd);
+        long lowIdent = GETIDENT(LOW(bdd));
+        long highIdent = GETIDENT(HIGH(bdd));
+        return HashUtils.hash(level, lowIdent, highIdent);
+    }
 
-        return HashUtils.hash(level, low, high);
+    private int calcIntIdentifier(int bdd) {
+        long identifier = calcIdentifier(bdd);
+        return HashUtils.toInt(identifier);
     }
 
     /** The default saturation callback function that does nothing. */
@@ -93,14 +112,7 @@ public class JFactory extends BDDFactoryIntImpl {
 
     private JFactory() {
         recomputedNodeCounter = 0;
-        try {
-            OutputStream stream = new BufferedOutputStream(new FileOutputStream("C:\\Dion\\ComputedNodes\\Test.txt"));
-            outWriter = new OutputStreamWriter(stream, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         computedNodes = new HashSet<>();
-        removedNodes = new HashSet<>();
     }
 
     public static BDDFactory init(int nodenum, int cachesize) {
@@ -976,9 +988,19 @@ public class JFactory extends BDDFactoryIntImpl {
 
     static final int offset__hash = 3;
 
-    static final int offset__next = 4;
+    static final int offset_identifier = 4; // TODO: Upgrade to 64 bit identifiers.
 
-    static final int __node_size = 5;
+    static final int offset__next = 5;
+
+    static final int __node_size = 6;
+
+    private final void SETIDENT(int node, int identifier) {
+        bddnodes[node * __node_size + offset_identifier] = identifier;
+    }
+
+    private final int GETIDENT(int node) {
+        return bddnodes[node * __node_size + offset_identifier];
+    }
 
     private final boolean HASREF(int node) {
         boolean r = (bddnodes[node * __node_size + offset__refcou_and_level] & REF_MASK) != 0;
@@ -6545,18 +6567,6 @@ public class JFactory extends BDDFactoryIntImpl {
         bddfreepos = 0;
         bddfreenum = 0;
 
-//        if (countUselessNodes) {
-//            for (int i = 2; i < bddnodesize; i++) {
-//                if (!MARKED(i)) {
-//                    String removedNode = bdd_toString(i);
-//                    boolean added = removedNodes.add(removedNode);
-//                    if (!added) {
-//                        recomputedNodeCounter++;
-//                    }
-//                }
-//            }
-//        }
-
         for (n = bddnodesize - 1; n >= 2; n--) {
             if (MARKED(n) && LOW(n) != INVALID_BDD) {
                 int hash2;
@@ -6594,33 +6604,6 @@ public class JFactory extends BDDFactoryIntImpl {
         }
 
         // validate_all();
-    }
-
-    @Override
-    public int finalRecomputedNodeCount() {
-        int remainingNodes = 0;
-
-        for (int r = 0; r < bddrefstacktop; r++) {
-            bdd_mark(bddrefstack[r]);
-        }
-
-        for (int n = 0; n < bddnodesize; n++) {
-            if (HASREF(n)) {
-                bdd_mark(n);
-            }
-        }
-
-        for (int n = bddnodesize - 1; n >= 2; n--) {
-            if (MARKED(n) && LOW(n) != INVALID_BDD) {
-                Long identifier = Long.valueOf(calcIdentifier(n));
-                boolean isContained = removedNodes.contains(identifier);
-                if (isContained) {
-                    remainingNodes++;
-                }
-                UNMARK(n);
-            }
-        }
-        return remainingNodes;
     }
 
     int bdd_addref(int root) {
@@ -6849,7 +6832,11 @@ public class JFactory extends BDDFactoryIntImpl {
         SETNEXT(res, HASH(hash2));
         SETHASH(hash2, res);
 
-        // TODO: Counting occurs here.
+        // TODO: Storing identifiers happens here.
+        int identifier = calcIntIdentifier(res);
+        SETIDENT(res, identifier);
+
+        // TODO: Counting happens here.
         if (countUselessNodes) {
 //            String resString = bdd_toString(res);
 //            System.out.println("String length: " + resString.length());
@@ -6859,26 +6846,11 @@ public class JFactory extends BDDFactoryIntImpl {
 //            } else {
 //                System.out.println("Computed nodes size: " + computedNodes.size());
 //            }
-            Long identifier = Long.valueOf(calcIdentifier(res));
-            boolean added = computedNodes.add(identifier);
+            Long longIdentifier = Long.valueOf(identifier);
+            boolean added = computedNodes.add(longIdentifier);
             if (!added) {
                 recomputedNodeCounter++;
             }
-
-            // Write the new node to a file.
-//            try {
-//                outWriter.append(String.valueOf(cachestats.opMiss));
-//                outWriter.append(",");
-//                outWriter.append(resString);
-//                outWriter.append("\n");
-//                linesWritten++;
-//                if (linesWritten > 10000) {
-//                    outWriter.flush();
-//                    linesWritten = 0;
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
         }
 
         return res;

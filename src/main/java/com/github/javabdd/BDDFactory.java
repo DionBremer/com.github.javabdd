@@ -52,8 +52,6 @@ public abstract class BDDFactory {
     public int recomputedNodeCounter = 0;
     public boolean countUselessNodes = false;
 
-    public abstract int finalRecomputedNodeCount();
-
     public BigInteger cantorPairing(BigInteger x, BigInteger y) {
         BigInteger sum = x.add(y);
         BigInteger term = sum.multiply(sum.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
