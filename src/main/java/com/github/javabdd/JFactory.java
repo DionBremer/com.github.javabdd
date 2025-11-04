@@ -988,18 +988,26 @@ public class JFactory extends BDDFactoryIntImpl {
 
     static final int offset__hash = 3;
 
-    static final int offset_identifier = 4; // TODO: Upgrade to 64 bit identifiers.
+    static final int offset_identifier_1 = 4;
 
-    static final int offset__next = 5;
+    static final int offset_identifier_2 = 5;
 
-    static final int __node_size = 6;
+    static final int offset__next = 6;
 
-    private final void SETIDENT(int node, int identifier) {
-        bddnodes[node * __node_size + offset_identifier] = identifier;
+    static final int __node_size = 7;
+
+    private final void SETIDENT(int node, long identifier) {
+        int identifier1 = (int)(identifier >> 32);
+        int identifier2 = (int)identifier;
+        bddnodes[node * __node_size + offset_identifier_1] = identifier1;
+        bddnodes[node * __node_size + offset_identifier_2] = identifier2;
     }
 
-    private final int GETIDENT(int node) {
-        return bddnodes[node * __node_size + offset_identifier];
+    private final long GETIDENT(int node) {
+        int identifier1 = bddnodes[node * __node_size + offset_identifier_1];
+        int identifier2 = bddnodes[node * __node_size + offset_identifier_2];
+        long identifier = (long)identifier1 << 32 | identifier2 & 0xFFFFFFFFL;
+        return identifier;
     }
 
     private final boolean HASREF(int node) {
@@ -6833,7 +6841,7 @@ public class JFactory extends BDDFactoryIntImpl {
         SETHASH(hash2, res);
 
         // TODO: Storing identifiers happens here.
-        int identifier = calcIntIdentifier(res);
+        long identifier = calcIdentifier(res);
         SETIDENT(res, identifier);
 
         // TODO: Counting happens here.
