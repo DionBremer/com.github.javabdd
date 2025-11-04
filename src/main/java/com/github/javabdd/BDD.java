@@ -1309,6 +1309,8 @@ public abstract class BDD {
         }
     }
 
+    public abstract BDD replaceSubBDD(SaturationPath path, BDD newBdd);
+
     /**
      * Returns a BDD where all variables are replaced with the variables defined by pair. Each entry in pair consists of
      * a old and a new variable. Whenever the old variable is found in this BDD then a new node with the new variable is

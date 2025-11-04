@@ -18,6 +18,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
@@ -46,6 +47,27 @@ public abstract class BDDFactory {
         } catch (AccessControlException e) {
             return def;
         }
+    }
+
+    public int recomputedNodeCounter = 0;
+    public boolean countUselessNodes = false;
+
+    public abstract int finalRecomputedNodeCount();
+
+    public BigInteger cantorPairing(BigInteger x, BigInteger y) {
+        BigInteger sum = x.add(y);
+        BigInteger term = sum.multiply(sum.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
+        BigInteger result = x.add(term);
+        return result;
+    }
+
+    public BigInteger cantorPairing(BigInteger x, BigInteger y, BigInteger z) {
+        BigInteger sum1 = x.add(y);
+        BigInteger sum2 = sum1.add(z);
+        BigInteger term1 = sum1.multiply(sum1.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
+        BigInteger term2 = sum2.multiply(sum2.add(BigInteger.ONE)).multiply(sum2.add(BigInteger.TWO)).divide(BigInteger.valueOf(6));
+        BigInteger result = x.add(term1).add(term2);
+        return result;
     }
 
     /**
@@ -2210,7 +2232,7 @@ public abstract class BDDFactory {
          * @param before The BDD to which the transition was applied.
          * @param after The resulting BDD after applying the transition.
          */
-        public void invoke(int transition, T before, T after);
+        public void invoke(int transition, T before, T after, SaturationPath path);
     }
 
     /** The registered garbage collection statistics callbacks, or {@code null} if none registered. */
