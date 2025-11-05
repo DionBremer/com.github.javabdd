@@ -18,10 +18,13 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.AccessControlException;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -59,6 +62,30 @@ public abstract class BDDFactory {
     // TODO: Do not store these, but stream them to a file instead. Don't output them to the console!
     public List<Long> recomputationTimes;
     public List<Long> nodeCreationTimes;
+
+    protected OutputStream creationStream;
+    protected OutputStream duplicatesStream;
+
+    protected Writer creationWriter;
+    protected Writer duplicatesWriter;
+
+    public void setCreationStream(OutputStream stream) {
+        creationStream = stream;
+        try {
+            creationWriter = new OutputStreamWriter(creationStream, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setDuplicatesStream(OutputStream stream) {
+        duplicatesStream = stream;
+        try {
+            duplicatesWriter = new OutputStreamWriter(duplicatesStream, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public BigInteger cantorPairing(BigInteger x, BigInteger y) {
         BigInteger sum = x.add(y);

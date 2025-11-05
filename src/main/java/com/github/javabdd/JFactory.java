@@ -6849,7 +6849,16 @@ public class JFactory extends BDDFactoryIntImpl {
         SETHASH(hash2, res);
 
         // TODO: Stream this to a file!
-        //nodeCreationTimes.add(cachestats.opMiss);
+        // nodeCreationTimes.add(cachestats.opMiss);
+        if (creationWriter != null) {
+            try {
+                creationWriter.write(String.valueOf(cachestats.opMiss));
+                creationWriter.write('\n');
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         // TODO: Storing identifiers happens here.
         long identifier = calcIdentifier(res);
         SETIDENT(res, identifier);
@@ -6861,7 +6870,15 @@ public class JFactory extends BDDFactoryIntImpl {
             if (!added) {
                 recomputedNodeCounter++;
                 // TODO: Stream this to a file!
-                //recomputationTimes.add(cachestats.opMiss);
+                // recomputationTimes.add(cachestats.opMiss);
+                if (duplicatesWriter != null) {
+                    try {
+                        duplicatesWriter.write(String.valueOf(cachestats.opMiss));
+                        duplicatesWriter.write('\n');
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
 
