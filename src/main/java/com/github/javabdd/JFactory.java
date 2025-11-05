@@ -13,17 +13,13 @@
 
 package com.github.javabdd;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,10 +72,10 @@ public class JFactory extends BDDFactoryIntImpl {
         return HashUtils.hash(level, low, high);
     }
 
-    private int calcIntIdentifierRec(int bdd) {
-        long identifier = calcIdentifierRec(bdd);
-        return HashUtils.toInt(identifier);
-    }
+//    private int calcIntIdentifierRec(int bdd) {
+//        long identifier = calcIdentifierRec(bdd);
+//        return HashUtils.toInt(identifier);
+//    }
 
     private long calcIdentifier(int bdd) {
         if (ISZERO(bdd)) {
@@ -96,10 +92,10 @@ public class JFactory extends BDDFactoryIntImpl {
         return HashUtils.hash(level, lowIdent, highIdent);
     }
 
-    private int calcIntIdentifier(int bdd) {
-        long identifier = calcIdentifier(bdd);
-        return HashUtils.toInt(identifier);
-    }
+//    private int calcIntIdentifier(int bdd) {
+//        long identifier = calcIdentifier(bdd);
+//        return HashUtils.toInt(identifier);
+//    }
 
     /** The default saturation callback function that does nothing. */
     private static final SaturationDebugCallback<Integer> DEFAULT_SATURATION_CALLBACK = (t, b, a, p) -> {};
@@ -113,6 +109,10 @@ public class JFactory extends BDDFactoryIntImpl {
     private JFactory() {
         recomputedNodeCounter = 0;
         computedNodes = new HashSet<>();
+        recreationPerGC = new ArrayList<>();
+        uniqueMissPerGC = new ArrayList<>();
+        recomputationTimes = new ArrayList<>();
+        nodeCreationTimes = new ArrayList<>();
     }
 
     public static BDDFactory init(int nodenum, int cachesize) {
@@ -6612,6 +6612,14 @@ public class JFactory extends BDDFactoryIntImpl {
         }
 
         // validate_all();
+
+        // TODO: Store node (re)creations
+        long recomputedThisGC = recomputedNodeCounter - recomputedNodesAtLastGC;
+        long computedThisGC = cachestats.uniqueMiss - uniqueMissAtLastGC;
+        recreationPerGC.add(recomputedThisGC);
+        uniqueMissPerGC.add(computedThisGC);
+        recomputedNodesAtLastGC = recomputedNodeCounter;
+        uniqueMissAtLastGC = cachestats.uniqueMiss;
     }
 
     int bdd_addref(int root) {
@@ -6840,24 +6848,20 @@ public class JFactory extends BDDFactoryIntImpl {
         SETNEXT(res, HASH(hash2));
         SETHASH(hash2, res);
 
+        // TODO: Stream this to a file!
+        //nodeCreationTimes.add(cachestats.opMiss);
         // TODO: Storing identifiers happens here.
         long identifier = calcIdentifier(res);
         SETIDENT(res, identifier);
 
         // TODO: Counting happens here.
         if (countUselessNodes) {
-//            String resString = bdd_toString(res);
-//            System.out.println("String length: " + resString.length());
-//            boolean added = computedNodes.add(resString);
-//            if (!added) {
-//                recomputedNodeCounter++;
-//            } else {
-//                System.out.println("Computed nodes size: " + computedNodes.size());
-//            }
             Long longIdentifier = Long.valueOf(identifier);
             boolean added = computedNodes.add(longIdentifier);
             if (!added) {
                 recomputedNodeCounter++;
+                // TODO: Stream this to a file!
+                //recomputationTimes.add(cachestats.opMiss);
             }
         }
 

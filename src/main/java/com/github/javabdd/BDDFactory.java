@@ -49,8 +49,16 @@ public abstract class BDDFactory {
         }
     }
 
-    public int recomputedNodeCounter = 0;
+    public long recomputedNodeCounter = 0;
+    public long recomputedNodesAtLastGC = 0;
+    public long uniqueMissAtLastGC = 0;
     public boolean countUselessNodes = false;
+    public List<Long> recreationPerGC;
+    public List<Long> uniqueMissPerGC;
+
+    // TODO: Do not store these, but stream them to a file instead. Don't output them to the console!
+    public List<Long> recomputationTimes;
+    public List<Long> nodeCreationTimes;
 
     public BigInteger cantorPairing(BigInteger x, BigInteger y) {
         BigInteger sum = x.add(y);
