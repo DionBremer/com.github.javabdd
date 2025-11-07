@@ -58,6 +58,7 @@ public abstract class BDDFactory {
     public boolean countUselessNodes = false;
     public List<Long> recreationPerGC;
     public List<Long> uniqueMissPerGC;
+    public long duplicateCacheEntries = 0;
 
     // TODO: Do not store these, but stream them to a file instead. Don't output them to the console!
     public List<Long> recomputationTimes;
@@ -82,6 +83,27 @@ public abstract class BDDFactory {
         duplicatesStream = stream;
         try {
             duplicatesWriter = new OutputStreamWriter(duplicatesStream, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void flushWriters() {
+        try {
+            creationWriter.flush();
+            duplicatesWriter.flush();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void closeWriters() {
+        try {
+            creationWriter.close();
+            duplicatesWriter.close();
+            creationWriter = Writer.nullWriter();
+            duplicatesWriter = Writer.nullWriter();
         } catch (Exception e) {
             e.printStackTrace();
         }
