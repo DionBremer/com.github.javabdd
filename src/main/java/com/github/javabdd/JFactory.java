@@ -137,6 +137,9 @@ public class JFactory extends BDDFactoryIntImpl {
         recomputationTimes = new ArrayList<>();
         nodeCreationTimes = new ArrayList<>();
 
+        cacheRecomputationsPerGC = new ArrayList<>();
+        cacheEntriesPerGC = new ArrayList<>();
+
         creationWriter = Writer.nullWriter();
         duplicatesWriter = Writer.nullWriter();
     }
@@ -2852,7 +2855,7 @@ public class JFactory extends BDDFactoryIntImpl {
         CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relnext, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelnextEntries++;
         }
 
         return result;
@@ -3117,7 +3120,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelnextUnionEntries++;
         }
 
         return result;
@@ -3387,7 +3390,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 bddop_relnextIntersection, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelnextIntersectionEntries++;
         }
 
         return result;
@@ -3626,7 +3629,7 @@ public class JFactory extends BDDFactoryIntImpl {
         CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relprev, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelprevEntries++;
         }
 
         return result;
@@ -3897,7 +3900,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelprevUnionEntries++;
         }
 
         return result;
@@ -4174,7 +4177,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 bddop_relprevIntersection, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateRelprevIntersectionEntries++;
         }
 
         return result;
@@ -4328,7 +4331,7 @@ public class JFactory extends BDDFactoryIntImpl {
         CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateSaturationForwardEntries++;
         }
 
         return result;
@@ -4518,7 +4521,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 bddop_boundedSaturationForward, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateBoundedSaturationForwardEntries++;
         }
 
         return result;
@@ -4675,7 +4678,7 @@ public class JFactory extends BDDFactoryIntImpl {
         CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateSaturationBackwardEntries++;
         }
 
         return result;
@@ -4864,7 +4867,7 @@ public class JFactory extends BDDFactoryIntImpl {
                 bddop_boundedSaturationBackward, resIdent);
         boolean added = cacheEntriesSeen.add(cacheEntry);
         if (!added) {
-            duplicateCacheEntries++;
+            duplicateBoundedSaturationBackwardEntries++;
         }
 
         return result;
@@ -6760,6 +6763,15 @@ public class JFactory extends BDDFactoryIntImpl {
         uniqueMissPerGC.add(computedThisGC);
         recomputedNodesAtLastGC = recomputedNodeCounter;
         uniqueMissAtLastGC = cachestats.uniqueMiss;
+
+        // TODO: Store cache (re)creations.
+        long totalCacheRecomputations = getTotalCacheDuplicates();
+        long cacheRecomputationsThisGC = totalCacheRecomputations - totalDuplicateCacheEntriesAtLastGC;
+        long cacheEntriesThisGC = cachestats.opMiss - totalCacheEntriesAtLastGC;
+        cacheRecomputationsPerGC.add(cacheRecomputationsThisGC);
+        cacheEntriesPerGC.add(cacheEntriesThisGC);
+        totalDuplicateCacheEntriesAtLastGC = totalCacheRecomputations;
+        totalCacheEntriesAtLastGC = cachestats.opMiss;
     }
 
     int bdd_addref(int root) {
@@ -7013,7 +7025,7 @@ public class JFactory extends BDDFactoryIntImpl {
         SETIDENT(res, identifier);
 
         // TODO: Counting happens here.
-        if (countUselessNodes) {
+        if (measureDuplicateStats) {
             Long longIdentifier = Long.valueOf(identifier);
             boolean added = computedNodes.add(longIdentifier);
             if (!added) {

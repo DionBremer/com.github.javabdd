@@ -52,22 +52,66 @@ public abstract class BDDFactory {
         }
     }
 
-    public long recomputedNodeCounter = 0;
-    public long recomputedNodesAtLastGC = 0;
-    public long uniqueMissAtLastGC = 0;
-    public boolean countUselessNodes = false;
-    public List<Long> recreationPerGC;
-    public List<Long> uniqueMissPerGC;
-    public long duplicateCacheEntries = 0;
+    public boolean measureDuplicateStats = false;
 
-    // TODO: Do not store these, but stream them to a file instead. Don't output them to the console!
+    // Node recreations.
+    public long recomputedNodeCounter = 0;
+
+    public long recomputedNodesAtLastGC = 0;
+
+    public long uniqueMissAtLastGC = 0;
+
+    public List<Long> recreationPerGC;
+
+    public List<Long> uniqueMissPerGC;
+
+    // Cache entry duplicates.
+    public long totalDuplicateCacheEntriesAtLastGC = 0;
+
+    public long totalCacheEntriesAtLastGC = 0;
+
+    public List<Long> cacheRecomputationsPerGC;
+
+    public List<Long> cacheEntriesPerGC;
+
+    public long duplicateSaturationForwardEntries = 0;
+
+    public long duplicateBoundedSaturationForwardEntries = 0;
+
+    public long duplicateSaturationBackwardEntries = 0;
+
+    public long duplicateBoundedSaturationBackwardEntries = 0;
+
+    public long duplicateRelnextEntries = 0;
+
+    public long duplicateRelnextUnionEntries = 0;
+
+    public long duplicateRelnextIntersectionEntries = 0;
+
+    public long duplicateRelprevEntries = 0;
+
+    public long duplicateRelprevUnionEntries = 0;
+
+    public long duplicateRelprevIntersectionEntries = 0;
+
+    public long getTotalCacheDuplicates() {
+        return duplicateSaturationForwardEntries + duplicateBoundedSaturationForwardEntries
+                + duplicateSaturationBackwardEntries + duplicateBoundedSaturationBackwardEntries
+                + duplicateRelnextEntries + duplicateRelnextIntersectionEntries + duplicateRelnextUnionEntries
+                + duplicateRelprevEntries + duplicateRelprevIntersectionEntries + duplicateRelprevUnionEntries;
+    }
+
+    // Node recreation times.
     public List<Long> recomputationTimes;
+
     public List<Long> nodeCreationTimes;
 
     protected OutputStream creationStream;
+
     protected OutputStream duplicatesStream;
 
     protected Writer creationWriter;
+
     protected Writer duplicatesWriter;
 
     public void setCreationStream(OutputStream stream) {
@@ -92,7 +136,6 @@ public abstract class BDDFactory {
         try {
             creationWriter.flush();
             duplicatesWriter.flush();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -120,7 +163,8 @@ public abstract class BDDFactory {
         BigInteger sum1 = x.add(y);
         BigInteger sum2 = sum1.add(z);
         BigInteger term1 = sum1.multiply(sum1.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
-        BigInteger term2 = sum2.multiply(sum2.add(BigInteger.ONE)).multiply(sum2.add(BigInteger.TWO)).divide(BigInteger.valueOf(6));
+        BigInteger term2 = sum2.multiply(sum2.add(BigInteger.ONE)).multiply(sum2.add(BigInteger.TWO))
+                .divide(BigInteger.valueOf(6));
         BigInteger result = x.add(term1).add(term2);
         return result;
     }
@@ -494,8 +538,8 @@ public abstract class BDDFactory {
 
     /**
      * Sets the cache ratio for the operator caches. When the node table grows, operator caches will also grow to
-     * maintain the ratio. A ratio of {@code 0.5} leads to caches that are half the node table size, while a ratio
-     * of {@code 2.0} leads to caches that are twice the node table size.
+     * maintain the ratio. A ratio of {@code 0.5} leads to caches that are half the node table size, while a ratio of
+     * {@code 2.0} leads to caches that are twice the node table size.
      *
      * <p>
      * Compare to bdd_setcacheratio.
@@ -2186,7 +2230,7 @@ public abstract class BDDFactory {
          *
          * @param stats The statistics.
          * @param pre Whether this callback is invoked before ({@code true}) or after ({@code false}) garbage
-         *      collection.
+         * collection.
          */
         public void gc(GCStats stats, boolean pre);
     }
@@ -2255,9 +2299,9 @@ public abstract class BDDFactory {
          * Continuously BDD nodes usage and BDD operations statistics callback.
          *
          * @param usedBddNodes The number of currently used BDD nodes. Represents a platform-independent measure that
-         *      approximates memory use.
+         * approximates memory use.
          * @param opMiss The number of BDD operations performed until now that could not be taken from the operation
-         *      cache. Represents a platform-independent measure of approximates running time.
+         * cache. Represents a platform-independent measure of approximates running time.
          */
         public void continuous(int usedBddNodes, long opMiss);
     }
@@ -2697,9 +2741,9 @@ public abstract class BDDFactory {
      * Invoke all registered continuously BDD nodes usage and BDD operations statistics callbacks.
      *
      * @param usedBddNodes The number of currently used BDD nodes. Represents a platform-independent measure that
-     *      approximates memory use.
-     * @param opMiss The number of BDD operations performed until now that could not be taken from the operation
-     *      cache. Represents a platform-independent measure of approximates running time.
+     * approximates memory use.
+     * @param opMiss The number of BDD operations performed until now that could not be taken from the operation cache.
+     * Represents a platform-independent measure of approximates running time.
      */
     public void invokeContinuousStatsCallbacks(int usedBddNodes, long opMiss) {
         if (continuousCallbacks != null) {
@@ -2788,9 +2832,9 @@ public abstract class BDDFactory {
      * Default continuously BDD nodes usage and BDD operations statistics callback.
      *
      * @param usedBddNodes The number of currently used BDD nodes. Represents a platform-independent measure that
-     *      approximates memory use.
-     * @param opMiss The number of BDD operations performed until now that could not be taken from the operation
-     *      cache. Represents a platform-independent measure of approximates running time.
+     * approximates memory use.
+     * @param opMiss The number of BDD operations performed until now that could not be taken from the operation cache.
+     * Represents a platform-independent measure of approximates running time.
      */
     public static void defaultContinuousStatsCallback(int usedBddNodes, long opMiss) {
         StringBuilder sb = new StringBuilder();
