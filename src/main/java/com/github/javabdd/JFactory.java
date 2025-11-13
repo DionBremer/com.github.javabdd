@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2847,7 +2846,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnext;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long varsIdent = GETIDENT(vars);
@@ -3110,7 +3108,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnextUnion;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long unionIdent = GETIDENT(union);
@@ -3380,7 +3377,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnextIntersection;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long restrictionIdent = GETIDENT(restriction);
@@ -3621,7 +3617,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprev;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long varsIdent = GETIDENT(vars);
@@ -3890,7 +3885,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprevUnion;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long unionIdent = GETIDENT(union);
@@ -4167,7 +4161,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprevIntersection;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long relationIdent = GETIDENT(relation);
         long restrictionIdent = GETIDENT(restriction);
@@ -4325,7 +4318,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_saturationForward;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long resIdent = GETIDENT(result);
         CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward, resIdent);
@@ -4513,7 +4505,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_boundedSaturationForward;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long boundIdent = GETIDENT(bound);
         long resIdent = GETIDENT(result);
@@ -4672,7 +4663,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_saturationBackward;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long resIdent = GETIDENT(result);
         CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward, resIdent);
@@ -4859,7 +4849,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_boundedSaturationBackward;
         entry.res = result;
 
-        // TODO: Check if this works before moving to other stuff.
         long statesIdent = GETIDENT(states);
         long boundIdent = GETIDENT(bound);
         long resIdent = GETIDENT(result);
