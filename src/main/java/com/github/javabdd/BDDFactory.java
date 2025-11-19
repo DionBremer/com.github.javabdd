@@ -108,7 +108,9 @@ public abstract class BDDFactory {
     }
 
     public abstract long getUniqueTableMemoryUsage();
+
     public abstract long getTotalCacheTableMemoryUsage();
+
     public abstract long getDuplicateToolingMemoryUsage();
 
     // Node recreation times.

@@ -3918,8 +3918,8 @@ public class JFactory extends BDDFactoryIntImpl {
             long unionIdent = GETIDENT(union);
             long varsIdent = GETIDENT(vars);
             long resIdent = GETIDENT(result);
-            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent, bddop_relprevUnion,
-                    resIdent);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent,
+                    bddop_relprevUnion, resIdent);
             boolean added = cacheEntriesSeen.add(cacheEntry);
             if (!added) {
                 duplicateRelprevUnionEntries++;
@@ -4349,7 +4349,8 @@ public class JFactory extends BDDFactoryIntImpl {
         if (measureDuplicateCacheEntries) {
             long statesIdent = GETIDENT(states);
             long resIdent = GETIDENT(result);
-            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward, resIdent);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward,
+                    resIdent);
             boolean added = cacheEntriesSeen.add(cacheEntry);
             if (!added) {
                 duplicateSaturationForwardEntries++;
@@ -4417,8 +4418,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int boundedSaturationForward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current)
-    {
+    int boundedSaturationForward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current) {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
         }
@@ -4600,8 +4600,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int saturationBackward_rec(int states, int[] relations, int[] vars, int instance, int current)
-    {
+    int saturationBackward_rec(int states, int[] relations, int[] vars, int instance, int current) {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
         }
@@ -4688,7 +4687,8 @@ public class JFactory extends BDDFactoryIntImpl {
         if (measureDuplicateCacheEntries) {
             long statesIdent = GETIDENT(states);
             long resIdent = GETIDENT(result);
-            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward, resIdent);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward,
+                    resIdent);
             boolean added = cacheEntriesSeen.add(cacheEntry);
             if (!added) {
                 duplicateSaturationBackwardEntries++;
@@ -4756,8 +4756,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int boundedSaturationBackward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current)
-    {
+    int boundedSaturationBackward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current) {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
         }
