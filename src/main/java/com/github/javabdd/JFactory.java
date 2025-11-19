@@ -185,7 +185,7 @@ public class JFactory extends BDDFactoryIntImpl {
     }
 
     /** The default saturation callback function that does nothing. */
-    private static final SaturationDebugCallback<Integer> DEFAULT_SATURATION_CALLBACK = (t, b, a, p) -> {};
+    private static final SaturationDebugCallback<Integer> DEFAULT_SATURATION_CALLBACK = (t, b, a) -> {};
 
     /**
      * The non-{@code null} saturation callback function that is invoked after every transition application performed by
@@ -444,11 +444,6 @@ public class JFactory extends BDDFactoryIntImpl {
     @Override
     protected int fullSatOne_impl(int v) {
         return bdd_fullsatone(v);
-    }
-
-    @Override
-    protected int replaceSubBDD_impl(int v, SaturationPath path, int newBDD) {
-        return bdd_replaceSubBDD(v, path, newBDD);
     }
 
     @Override
@@ -1925,56 +1920,6 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.d = 0;
         entry.e = bddop_ite;
         entry.res = res;
-
-        return res;
-    }
-
-    int bdd_replaceSubBDD(int v, SaturationPath path, int newBDD) {
-        int res;
-        int numReorder = 1;
-
-        CHECKa(v);
-        CHECKa(newBDD);
-
-        again:
-        for (;;) {
-            try {
-                INITREF();
-                if (numReorder == 0) {
-                    bdd_disable_reorder();
-                }
-
-                res = replaceSubBDD_rec(v, path, newBDD);
-
-                if (numReorder == 0) {
-                    bdd_enable_reorder();
-                }
-            } catch (ReorderException x) {
-                bdd_checkreorder();
-                numReorder--;
-                continue again;
-            }
-            break;
-        }
-
-        checkresize();
-        return res;
-    }
-
-    int replaceSubBDD_rec(int v, SaturationPath path, int newBDD) {
-        if (path.isEmpty()) {
-            return newBDD;
-        }
-
-        SaturationDirection nextStep = path.getNext();
-        int res;
-        if (nextStep == SaturationDirection.LOW) {
-            PUSHREF(replaceSubBDD_rec(LOW(v), path.getTail(), newBDD));
-            res = bdd_makenode(LEVEL(v), READREF(1), HIGH(v));
-        } else {
-            PUSHREF(replaceSubBDD_rec(HIGH(v), path.getTail(), newBDD));
-            res = bdd_makenode(LEVEL(v), LOW(v), READREF(1));
-        }
 
         return res;
     }
@@ -4301,8 +4246,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     bdd_disable_reorder();
                 }
 
-                SaturationPath path = new SaturationPath();
-                result = saturationForward_rec(states, relations, vars, instance, 0, path);
+                result = saturationForward_rec(states, relations, vars, instance, 0);
 
                 if (numReorder == 0) {
                     bdd_enable_reorder();
@@ -4319,7 +4263,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int saturationForward_rec(int states, int[] relations, int[] vars, int instance, int current, SaturationPath path) {
+    int saturationForward_rec(int states, int[] relations, int[] vars, int instance, int current) {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
         }
@@ -4356,10 +4300,8 @@ public class JFactory extends BDDFactoryIntImpl {
         int result;
 
         if (LEVEL(states) < LEVEL(vars[current])) {
-            PUSHREF(saturationForward_rec(LOW(states), relations, vars, instance, current,
-                    path.add(SaturationDirection.LOW)));
-            PUSHREF(saturationForward_rec(HIGH(states), relations, vars, instance, current,
-                    path.add(SaturationDirection.HIGH)));
+            PUSHREF(saturationForward_rec(LOW(states), relations, vars, instance, current));
+            PUSHREF(saturationForward_rec(HIGH(states), relations, vars, instance, current));
             result = bdd_makenode(LEVEL(states), READREF(2), READREF(1));
             POPREF(2);
         } else {
@@ -4374,7 +4316,7 @@ public class JFactory extends BDDFactoryIntImpl {
 
             while (true) {
                 PUSHREF(result);
-                result = saturationForward_rec(result, relations, vars, instance, next, path);
+                result = saturationForward_rec(result, relations, vars, instance, next);
                 POPREF(1);
 
                 int previousResult = result;
@@ -4384,7 +4326,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     PUSHREF(result);
                     int prevResult = result;
                     result = relnextUnion_rec(result, relations[i], result, vars[i]);
-                    saturationCallback.invoke(i, prevResult, result, path);
+                    saturationCallback.invoke(i, prevResult, result);
                     POPREF(1);
                 }
 
@@ -4458,8 +4400,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     bdd_disable_reorder();
                 }
 
-                SaturationPath path = new SaturationPath();
-                result = boundedSaturationForward_rec(states, bound, relations, vars, instance, 0, path);
+                result = boundedSaturationForward_rec(states, bound, relations, vars, instance, 0);
 
                 if (numReorder == 0) {
                     bdd_enable_reorder();
@@ -4476,8 +4417,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int boundedSaturationForward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current,
-            SaturationPath path)
+    int boundedSaturationForward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current)
     {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
@@ -4495,7 +4435,7 @@ public class JFactory extends BDDFactoryIntImpl {
             return bddtrue;
         }
         if (ISONE(bound)) {
-            return saturationForward_rec(states, relations, vars, instance, current, path);
+            return saturationForward_rec(states, relations, vars, instance, current);
         }
         if (current == relations.length) {
             return states;
@@ -4528,13 +4468,9 @@ public class JFactory extends BDDFactoryIntImpl {
         if (level < LEVEL(vars[current])) {
             int s0, s1, b0, b1;
 
-            SaturationPath lowPath = path;
-            SaturationPath highPath = path;
             if (level_states == level) {
                 s0 = LOW(states);
                 s1 = HIGH(states);
-                lowPath = path.add(SaturationDirection.LOW);
-                highPath = path.add(SaturationDirection.HIGH);
             } else {
                 s0 = states;
                 s1 = states;
@@ -4547,8 +4483,8 @@ public class JFactory extends BDDFactoryIntImpl {
                 b1 = bound;
             }
 
-            PUSHREF(boundedSaturationForward_rec(s0, b0, relations, vars, instance, current, lowPath));
-            PUSHREF(boundedSaturationForward_rec(s1, b1, relations, vars, instance, current, highPath));
+            PUSHREF(boundedSaturationForward_rec(s0, b0, relations, vars, instance, current));
+            PUSHREF(boundedSaturationForward_rec(s1, b1, relations, vars, instance, current));
             result = bdd_makenode(level, READREF(2), READREF(1));
             POPREF(2);
         } else {
@@ -4563,7 +4499,7 @@ public class JFactory extends BDDFactoryIntImpl {
 
             while (true) {
                 PUSHREF(result);
-                result = boundedSaturationForward_rec(result, bound, relations, vars, instance, next, path);
+                result = boundedSaturationForward_rec(result, bound, relations, vars, instance, next);
                 POPREF(1);
 
                 int previousResult = result;
@@ -4573,7 +4509,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     PUSHREF(result);
                     int prevResult = result;
                     result = or_rec(PUSHREF(relnextIntersection_rec(result, relations[i], bound, vars[i])), result);
-                    saturationCallback.invoke(i, prevResult, result, path);
+                    saturationCallback.invoke(i, prevResult, result);
                     POPREF(2);
                 }
 
@@ -4647,8 +4583,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     bdd_disable_reorder();
                 }
 
-                SaturationPath path = new SaturationPath();
-                result = saturationBackward_rec(states, relations, vars, instance, 0, path);
+                result = saturationBackward_rec(states, relations, vars, instance, 0);
 
                 if (numReorder == 0) {
                     bdd_enable_reorder();
@@ -4665,8 +4600,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int saturationBackward_rec(int states, int[] relations, int[] vars, int instance, int current,
-            SaturationPath path)
+    int saturationBackward_rec(int states, int[] relations, int[] vars, int instance, int current)
     {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
@@ -4705,10 +4639,8 @@ public class JFactory extends BDDFactoryIntImpl {
         int result;
 
         if (LEVEL(states) < LEVEL(vars[current])) {
-            PUSHREF(saturationBackward_rec(LOW(states), relations, vars, instance, current,
-                    path.add(SaturationDirection.LOW)));
-            PUSHREF(saturationBackward_rec(HIGH(states), relations, vars, instance, current,
-                    path.add(SaturationDirection.HIGH)));
+            PUSHREF(saturationBackward_rec(LOW(states), relations, vars, instance, current));
+            PUSHREF(saturationBackward_rec(HIGH(states), relations, vars, instance, current));
             result = bdd_makenode(LEVEL(states), READREF(2), READREF(1));
             POPREF(2);
         } else {
@@ -4723,7 +4655,7 @@ public class JFactory extends BDDFactoryIntImpl {
 
             while (true) {
                 PUSHREF(result);
-                result = saturationBackward_rec(result, relations, vars, instance, next, path);
+                result = saturationBackward_rec(result, relations, vars, instance, next);
                 POPREF(1);
 
                 int previousResult = result;
@@ -4733,7 +4665,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     PUSHREF(result);
                     int prevResult = result;
                     result = relprevUnion_rec(relations[i], result, result, vars[i]);
-                    saturationCallback.invoke(i, prevResult, result, path);
+                    saturationCallback.invoke(i, prevResult, result);
                     POPREF(1);
                 }
 
@@ -4807,8 +4739,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     bdd_disable_reorder();
                 }
 
-                SaturationPath path = new SaturationPath();
-                result = boundedSaturationBackward_rec(states, bound, relations, vars, instance, 0, path);
+                result = boundedSaturationBackward_rec(states, bound, relations, vars, instance, 0);
 
                 if (numReorder == 0) {
                     bdd_enable_reorder();
@@ -4825,8 +4756,7 @@ public class JFactory extends BDDFactoryIntImpl {
         return result;
     }
 
-    int boundedSaturationBackward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current,
-            SaturationPath path)
+    int boundedSaturationBackward_rec(int states, int bound, int[] relations, int[] vars, int instance, int current)
     {
         if (VERIFY_ASSERTIONS) {
             _assert(!ZDD);
@@ -4844,7 +4774,7 @@ public class JFactory extends BDDFactoryIntImpl {
             return bddtrue;
         }
         if (ISONE(bound)) {
-            return saturationBackward_rec(states, relations, vars, instance, current, path);
+            return saturationBackward_rec(states, relations, vars, instance, current);
         }
         if (current == relations.length) {
             return states;
@@ -4876,13 +4806,9 @@ public class JFactory extends BDDFactoryIntImpl {
 
         if (level < LEVEL(vars[current])) {
             int s0, s1, b0, b1;
-            SaturationPath lowPath = path;
-            SaturationPath highPath = path;
             if (level_states == level) {
                 s0 = LOW(states);
                 s1 = HIGH(states);
-                lowPath = path.add(SaturationDirection.LOW);
-                highPath = path.add(SaturationDirection.HIGH);
             } else {
                 s0 = states;
                 s1 = states;
@@ -4895,8 +4821,8 @@ public class JFactory extends BDDFactoryIntImpl {
                 b1 = bound;
             }
 
-            PUSHREF(boundedSaturationBackward_rec(s0, b0, relations, vars, instance, current, lowPath));
-            PUSHREF(boundedSaturationBackward_rec(s1, b1, relations, vars, instance, current, highPath));
+            PUSHREF(boundedSaturationBackward_rec(s0, b0, relations, vars, instance, current));
+            PUSHREF(boundedSaturationBackward_rec(s1, b1, relations, vars, instance, current));
             result = bdd_makenode(level, READREF(2), READREF(1));
             POPREF(2);
         } else {
@@ -4911,7 +4837,7 @@ public class JFactory extends BDDFactoryIntImpl {
 
             while (true) {
                 PUSHREF(result);
-                result = boundedSaturationBackward_rec(result, bound, relations, vars, instance, next, path);
+                result = boundedSaturationBackward_rec(result, bound, relations, vars, instance, next);
                 POPREF(1);
 
                 int previousResult = result;
@@ -4921,7 +4847,7 @@ public class JFactory extends BDDFactoryIntImpl {
                     PUSHREF(result);
                     int prevResult = result;
                     result = or_rec(PUSHREF(relprevIntersection_rec(relations[i], result, bound, vars[i])), result);
-                    saturationCallback.invoke(i, prevResult, result, path);
+                    saturationCallback.invoke(i, prevResult, result);
                     POPREF(2);
                 }
 

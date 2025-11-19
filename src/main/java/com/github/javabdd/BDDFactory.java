@@ -2341,7 +2341,7 @@ public abstract class BDDFactory {
          * @param before The BDD to which the transition was applied.
          * @param after The resulting BDD after applying the transition.
          */
-        public void invoke(int transition, T before, T after, SaturationPath path);
+        public void invoke(int transition, T before, T after);
     }
 
     /** The registered garbage collection statistics callbacks, or {@code null} if none registered. */

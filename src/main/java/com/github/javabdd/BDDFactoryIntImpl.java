@@ -84,8 +84,6 @@ public abstract class BDDFactoryIntImpl extends BDDFactory {
 
     protected abstract /* bdd */int fullSatOne_impl(/* bdd */int v);
 
-    protected abstract /* bdd */int replaceSubBDD_impl(/* bdd */int v, SaturationPath path, /* bdd*/ int newBdd);
-
     protected abstract /* bdd */int replace_impl(/* bdd */int v, BDDPairing p);
 
     protected abstract /* bdd */int veccompose_impl(/* bdd */int v, BDDPairing p);
@@ -138,15 +136,15 @@ public abstract class BDDFactoryIntImpl extends BDDFactory {
 
     @Override
     public void setSaturationCallback(SaturationSimpleCallback callback) {
-        setSaturationCallback_impl((transition, before, after, path) -> callback.invoke(transition));
+        setSaturationCallback_impl((transition, before, after) -> callback.invoke(transition));
     }
 
     @Override
     public void setSaturationCallback(SaturationDebugCallback<BDD> callback) {
-        setSaturationCallback_impl((transition, before, after, path) -> {
+        setSaturationCallback_impl((transition, before, after) -> {
             BDD beforeBdd = makeBDD(before);
             BDD afterBdd = makeBDD(after);
-            callback.invoke(transition, beforeBdd, afterBdd, path);
+            callback.invoke(transition, beforeBdd, afterBdd);
             beforeBdd.free();
             afterBdd.free();
         });
@@ -297,11 +295,6 @@ public abstract class BDDFactoryIntImpl extends BDDFactory {
         @Override
         public BigInteger pathCount() {
             return pathCount_impl(v);
-        }
-
-        @Override
-        public BDD replaceSubBDD(SaturationPath path, BDD newBdd) {
-            return makeBDD(replaceSubBDD_impl(v, path, unwrap(newBdd)));
         }
 
         @Override
