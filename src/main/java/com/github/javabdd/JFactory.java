@@ -117,6 +117,73 @@ public class JFactory extends BDDFactoryIntImpl {
 //        return HashUtils.toInt(identifier);
 //    }
 
+    @Override
+    public long getUniqueTableMemoryUsage() {
+        // Size of the table * bytes per integer (4)
+        return bddnodes.length * 4L;
+    }
+
+    public long getCacheTableMemoryUsage(BddCache cache) {
+        // BddCacheDataI:
+        // 8 byte reference
+        // 12 byte header
+        // 6 integers
+        // Total: 8 + 12 + 6 * 4 = 44 bytes
+
+        // BddCache:
+        // 8 byte reference
+        // 12 byte header
+        // 24 byte array header
+        // 8 byte array reference
+        // 8 * nullEntries + 44 * nonNullEntries bytes for actual data
+        // 4 byte integer
+
+        // null:
+        // is a reference, so 8 bytes
+
+        if (cache == null) {
+            return 8;
+        }
+
+        long memoryUsed = 56;
+        for (int i = 0; i < cache.table.length; i++) {
+            if (cache.table[i] == null) {
+                memoryUsed += 8;
+            } else {
+                memoryUsed += 44;
+            }
+        }
+
+        return memoryUsed;
+    }
+
+    @Override
+    public long getTotalCacheTableMemoryUsage() {
+        long applycacheSize = getCacheTableMemoryUsage(applycache);
+        long itecacheSize = getCacheTableMemoryUsage(itecache);
+        long quantcacheSize = getCacheTableMemoryUsage(quantcache);
+        long appexcacheSize = getCacheTableMemoryUsage(appexcache);
+        long replacecacheSize = getCacheTableMemoryUsage(replacecache);
+        long misccacheSize = getCacheTableMemoryUsage(misccache);
+
+        return applycacheSize + itecacheSize + quantcacheSize + appexcacheSize + replacecacheSize + misccacheSize;
+    }
+
+    @Override
+    public long getDuplicateToolingMemoryUsage() {
+        // CacheEntry is:
+        // 1 header + 5 longs = 12 + 5 * 8 = 52 bytes
+        // Behind a reference, it is 56 bytes.
+
+        // Long can be as much as 24 bytes.
+
+        // cacheEntriesSeen is how many bytes...?
+        // About 500 TODO: figure out the exact number
+        // Is there additional overhead per entry? For example, since the key needs to be stored as well?
+        // Could I measure/estimate this somehow?
+        return 1;
+    }
+
     /** The default saturation callback function that does nothing. */
     private static final SaturationDebugCallback<Integer> DEFAULT_SATURATION_CALLBACK = (t, b, a, p) -> {};
 
@@ -138,6 +205,13 @@ public class JFactory extends BDDFactoryIntImpl {
 
         cacheRecomputationsPerGC = new ArrayList<>();
         cacheEntriesPerGC = new ArrayList<>();
+
+        memoryUsagePerGC = new ArrayList<>();
+
+        Runtime runtime = Runtime.getRuntime();
+        runtime.gc();
+        long memUsed = runtime.totalMemory() - runtime.freeMemory();
+        memoryUsagePerGC.add(memUsed);
 
         creationWriter = Writer.nullWriter();
         duplicatesWriter = Writer.nullWriter();
@@ -2846,14 +2920,16 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnext;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relnext, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelnextEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relnext, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelnextEntries++;
+            }
         }
 
         return result;
@@ -3108,16 +3184,18 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnextUnion;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long unionIdent = GETIDENT(union);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent, bddop_relnextUnion,
-                resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelnextUnionEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long unionIdent = GETIDENT(union);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent,
+                    bddop_relnextUnion, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelnextUnionEntries++;
+            }
         }
 
         return result;
@@ -3377,16 +3455,18 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relnextIntersection;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long restrictionIdent = GETIDENT(restriction);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, restrictionIdent, varsIdent,
-                bddop_relnextIntersection, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelnextIntersectionEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long restrictionIdent = GETIDENT(restriction);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, restrictionIdent, varsIdent,
+                    bddop_relnextIntersection, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelnextIntersectionEntries++;
+            }
         }
 
         return result;
@@ -3617,14 +3697,16 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprev;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relprev, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelprevEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, varsIdent, 0, bddop_relprev, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelprevEntries++;
+            }
         }
 
         return result;
@@ -3885,16 +3967,18 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprevUnion;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long unionIdent = GETIDENT(union);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent, bddop_relprevUnion,
-                resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelprevUnionEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long unionIdent = GETIDENT(union);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, unionIdent, varsIdent, bddop_relprevUnion,
+                    resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelprevUnionEntries++;
+            }
         }
 
         return result;
@@ -4161,16 +4245,18 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_relprevIntersection;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long relationIdent = GETIDENT(relation);
-        long restrictionIdent = GETIDENT(restriction);
-        long varsIdent = GETIDENT(vars);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, restrictionIdent, varsIdent,
-                bddop_relprevIntersection, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateRelprevIntersectionEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long relationIdent = GETIDENT(relation);
+            long restrictionIdent = GETIDENT(restriction);
+            long varsIdent = GETIDENT(vars);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, relationIdent, restrictionIdent, varsIdent,
+                    bddop_relprevIntersection, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateRelprevIntersectionEntries++;
+            }
         }
 
         return result;
@@ -4318,12 +4404,14 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_saturationForward;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateSaturationForwardEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationForward, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateSaturationForwardEntries++;
+            }
         }
 
         return result;
@@ -4505,14 +4593,16 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_boundedSaturationForward;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long boundIdent = GETIDENT(bound);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, boundIdent, instance, current,
-                bddop_boundedSaturationForward, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateBoundedSaturationForwardEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long boundIdent = GETIDENT(bound);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, boundIdent, instance, current,
+                    bddop_boundedSaturationForward, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateBoundedSaturationForwardEntries++;
+            }
         }
 
         return result;
@@ -4663,12 +4753,14 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_saturationBackward;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateSaturationBackwardEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, instance, current, 0, bddop_saturationBackward, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateSaturationBackwardEntries++;
+            }
         }
 
         return result;
@@ -4849,14 +4941,16 @@ public class JFactory extends BDDFactoryIntImpl {
         entry.e = bddop_boundedSaturationBackward;
         entry.res = result;
 
-        long statesIdent = GETIDENT(states);
-        long boundIdent = GETIDENT(bound);
-        long resIdent = GETIDENT(result);
-        CacheEntry cacheEntry = new CacheEntry(statesIdent, boundIdent, instance, current,
-                bddop_boundedSaturationBackward, resIdent);
-        boolean added = cacheEntriesSeen.add(cacheEntry);
-        if (!added) {
-            duplicateBoundedSaturationBackwardEntries++;
+        if (measureDuplicateCacheEntries) {
+            long statesIdent = GETIDENT(states);
+            long boundIdent = GETIDENT(bound);
+            long resIdent = GETIDENT(result);
+            CacheEntry cacheEntry = new CacheEntry(statesIdent, boundIdent, instance, current,
+                    bddop_boundedSaturationBackward, resIdent);
+            boolean added = cacheEntriesSeen.add(cacheEntry);
+            if (!added) {
+                duplicateBoundedSaturationBackwardEntries++;
+            }
         }
 
         return result;
@@ -6761,6 +6855,13 @@ public class JFactory extends BDDFactoryIntImpl {
         cacheEntriesPerGC.add(cacheEntriesThisGC);
         totalDuplicateCacheEntriesAtLastGC = totalCacheRecomputations;
         totalCacheEntriesAtLastGC = cachestats.opMiss;
+
+        if (measureMemoryUsage) {
+            Runtime runtime = Runtime.getRuntime();
+            runtime.gc();
+            long memUsed = runtime.totalMemory() - runtime.freeMemory();
+            memoryUsagePerGC.add(memUsed);
+        }
     }
 
     int bdd_addref(int root) {
@@ -7014,7 +7115,7 @@ public class JFactory extends BDDFactoryIntImpl {
         SETIDENT(res, identifier);
 
         // TODO: Counting happens here.
-        if (measureDuplicateStats) {
+        if (measureDuplicateNodes) {
             Long longIdentifier = Long.valueOf(identifier);
             boolean added = computedNodes.add(longIdentifier);
             if (!added) {

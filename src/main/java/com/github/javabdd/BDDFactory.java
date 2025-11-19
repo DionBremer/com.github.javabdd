@@ -52,7 +52,11 @@ public abstract class BDDFactory {
         }
     }
 
-    public boolean measureDuplicateStats = false;
+    public boolean measureDuplicateNodes = false;
+
+    public boolean measureDuplicateCacheEntries = false;
+
+    public boolean measureMemoryUsage = false;
 
     // Node recreations.
     public long recomputedNodeCounter = 0;
@@ -73,6 +77,8 @@ public abstract class BDDFactory {
     public List<Long> cacheRecomputationsPerGC;
 
     public List<Long> cacheEntriesPerGC;
+
+    public List<Long> memoryUsagePerGC;
 
     public long duplicateSaturationForwardEntries = 0;
 
@@ -100,6 +106,10 @@ public abstract class BDDFactory {
                 + duplicateRelnextEntries + duplicateRelnextIntersectionEntries + duplicateRelnextUnionEntries
                 + duplicateRelprevEntries + duplicateRelprevIntersectionEntries + duplicateRelprevUnionEntries;
     }
+
+    public abstract long getUniqueTableMemoryUsage();
+    public abstract long getTotalCacheTableMemoryUsage();
+    public abstract long getDuplicateToolingMemoryUsage();
 
     // Node recreation times.
     public List<Long> recomputationTimes;
