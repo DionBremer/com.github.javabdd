@@ -69,116 +69,17 @@ public abstract class BDDFactory {
 
     public List<Long> uniqueMissPerGC;
 
-    // Cache entry duplicates.
-    public long totalDuplicateCacheEntriesAtLastGC = 0;
-
-    public long totalCacheEntriesAtLastGC = 0;
-
-    public List<Long> cacheRecomputationsPerGC;
-
-    public List<Long> cacheEntriesPerGC;
-
-    public List<Long> memoryUsagePerGC;
-
-    public long duplicateSaturationForwardEntries = 0;
-
-    public long duplicateBoundedSaturationForwardEntries = 0;
-
-    public long duplicateSaturationBackwardEntries = 0;
-
-    public long duplicateBoundedSaturationBackwardEntries = 0;
-
-    public long duplicateRelnextEntries = 0;
-
-    public long duplicateRelnextUnionEntries = 0;
-
-    public long duplicateRelnextIntersectionEntries = 0;
-
-    public long duplicateRelprevEntries = 0;
-
-    public long duplicateRelprevUnionEntries = 0;
-
-    public long duplicateRelprevIntersectionEntries = 0;
-
-    public long getTotalCacheDuplicates() {
-        return duplicateSaturationForwardEntries + duplicateBoundedSaturationForwardEntries
-                + duplicateSaturationBackwardEntries + duplicateBoundedSaturationBackwardEntries
-                + duplicateRelnextEntries + duplicateRelnextIntersectionEntries + duplicateRelnextUnionEntries
-                + duplicateRelprevEntries + duplicateRelprevIntersectionEntries + duplicateRelprevUnionEntries;
-    }
-
-    public abstract long getUniqueTableMemoryUsage();
-
-    public abstract long getTotalCacheTableMemoryUsage();
-
-    public abstract long getDuplicateToolingMemoryUsage();
-
-    // Node recreation times.
-    public List<Long> recomputationTimes;
-
-    public List<Long> nodeCreationTimes;
-
-    protected OutputStream creationStream;
-
-    protected OutputStream duplicatesStream;
-
-    protected Writer creationWriter;
-
-    protected Writer duplicatesWriter;
-
-    public void setCreationStream(OutputStream stream) {
-        creationStream = stream;
-        try {
-            creationWriter = new OutputStreamWriter(creationStream, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public boolean hasSlowedDown() {
+        int numCollections = gcstats.num;
+        if (numCollections < 2) {
+            // Cannot conclude anything yet.
+            return false;
         }
-    }
 
-    public void setDuplicatesStream(OutputStream stream) {
-        duplicatesStream = stream;
-        try {
-            duplicatesWriter = new OutputStreamWriter(duplicatesStream, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void flushWriters() {
-        try {
-            creationWriter.flush();
-            duplicatesWriter.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void closeWriters() {
-        try {
-            creationWriter.close();
-            duplicatesWriter.close();
-            creationWriter = Writer.nullWriter();
-            duplicatesWriter = Writer.nullWriter();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public BigInteger cantorPairing(BigInteger x, BigInteger y) {
-        BigInteger sum = x.add(y);
-        BigInteger term = sum.multiply(sum.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
-        BigInteger result = x.add(term);
-        return result;
-    }
-
-    public BigInteger cantorPairing(BigInteger x, BigInteger y, BigInteger z) {
-        BigInteger sum1 = x.add(y);
-        BigInteger sum2 = sum1.add(z);
-        BigInteger term1 = sum1.multiply(sum1.add(BigInteger.ONE)).divide(BigInteger.valueOf(2));
-        BigInteger term2 = sum2.multiply(sum2.add(BigInteger.ONE)).multiply(sum2.add(BigInteger.TWO))
-                .divide(BigInteger.valueOf(6));
-        BigInteger result = x.add(term1).add(term2);
-        return result;
+        // Check the last two garbage collections.
+        double recreations = (double)recreationPerGC.getLast() / (double)uniqueMissPerGC.getLast();
+        double previousRecreations = (double)recreationPerGC.get(numCollections - 2) / (double)uniqueMissPerGC.get(numCollections - 2);
+        return recreations >= 0.5 && previousRecreations >= 0.5;
     }
 
     /**
