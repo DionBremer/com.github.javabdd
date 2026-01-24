@@ -6634,9 +6634,10 @@ public class JFactory extends BDDFactoryIntImpl {
 
         // validate_all();
 
-        // TODO: Store node (re)creations
         long recomputedThisGC = recomputedNodeCounter - recomputedNodesAtLastGC;
         long computedThisGC = cachestats.uniqueMiss - uniqueMissAtLastGC;
+        System.out.println("Recomputed GC " + gbcollectnum + ": " + recomputedThisGC);
+        System.out.println("Computed GC " + gbcollectnum + ": " + computedThisGC);
         recreationPerGC.add(recomputedThisGC);
         uniqueMissPerGC.add(computedThisGC);
         recomputedNodesAtLastGC = recomputedNodeCounter;
