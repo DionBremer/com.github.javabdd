@@ -65,6 +65,43 @@ public abstract class BDDFactory {
 
     public List<Long> uniqueMissPerGC;
 
+    // Cache entry duplicates.
+    public long totalDuplicateCacheEntriesAtLastGC = 0;
+
+    public long totalCacheEntriesAtLastGC = 0;
+
+    public List<Long> cacheRecomputationsPerGC;
+
+    public List<Long> cacheEntriesPerGC;
+
+    public long duplicateSaturationForwardEntries = 0;
+
+    public long duplicateBoundedSaturationForwardEntries = 0;
+
+    public long duplicateSaturationBackwardEntries = 0;
+
+    public long duplicateBoundedSaturationBackwardEntries = 0;
+
+    public long duplicateRelnextEntries = 0;
+
+    public long duplicateRelnextUnionEntries = 0;
+
+    public long duplicateRelnextIntersectionEntries = 0;
+
+    public long duplicateRelprevEntries = 0;
+
+    public long duplicateRelprevUnionEntries = 0;
+
+    public long duplicateRelprevIntersectionEntries = 0;
+
+    public long getTotalCacheDuplicates() {
+        return duplicateSaturationForwardEntries + duplicateBoundedSaturationForwardEntries
+                + duplicateSaturationBackwardEntries + duplicateBoundedSaturationBackwardEntries
+                + duplicateRelnextEntries + duplicateRelnextIntersectionEntries + duplicateRelnextUnionEntries
+                + duplicateRelprevEntries + duplicateRelprevIntersectionEntries + duplicateRelprevUnionEntries;
+    }
+
+
     public boolean hasSlowedDown() {
         int numCollections = gcstats.num;
         if (numCollections < 2) {
